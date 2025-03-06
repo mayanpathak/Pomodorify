@@ -1,0 +1,27 @@
+body {
+    @apply text-white; /* text-white */
+} 
+
+.bg-pomodoro {
+    @apply bg-red-900; /* Background color for Pomodoro */
+}
+
+.bg-short-break  {
+    @apply bg-blue-900; /* Background color for Short Break */
+}
+
+.bg-long-break {
+    @apply bg-green-900; /* Background color for Long Break */
+}
+
+.off-white{
+    @apply bg-gray-50;
+    background-color: rgba(249, 250, 251, 0.1) !important;
+}
+
+.center-item {
+    @apply flex items-center justify-center;
+}
+ 
+
+
