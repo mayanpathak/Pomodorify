@@ -35,6 +35,11 @@ export default function NavbarSection () {
                 {/* <SettingsIcon ClassProp={"text-white group-hover:text-zinc-700"} />     */}
                 Dashboard</a>
             </div>
+            <div>
+            <a onClick={() => {navigate("/")}} className="bg-transparent group hover:bg-slate-50 hover:text-zinc-700 border-none btn border-slate-500 text-white ml-4 ">
+                {/* <SettingsIcon ClassProp={"text-white group-hover:text-zinc-700"} />     */}
+                Home</a>
+            </div>
                 <SettingsModal />
             </div>
         </>

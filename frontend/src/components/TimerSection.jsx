@@ -1,9 +1,16 @@
 import { useSelector, useDispatch } from 'react-redux';
-import { toggleTimer } from '../redux/timerSlice';
+import { 
+    toggleTimer,
+    resetCompletedPomodoros, 
+    incrementCompletedPomodoros,
+    startPomodoroSession,
+    endPomodoroSession,
+    fetchUserSettings
+} from '../redux/timerSlice';
+import { incrementTaskPomodoroAsync } from '../redux/taskSlice';
 import Countdown from 'react-countdown';
-import { useRef,useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Howl } from 'howler'; // Import Howler.js
-import { resetCompletedPomodoros, incrementCompletedPomodoros } from '../redux/timerSlice';
 import ToggleFx from "../assets/switch.mp3"
 
 export default function TimerSection({activeTab, setActiveTab}) {
@@ -20,10 +27,48 @@ export default function TimerSection({activeTab, setActiveTab}) {
     const alarmRepeatCount = useSelector((state) => state.timer.alarmRepeatCount);
     const [soundEffect, setSoundEffect] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const currentSession = useSelector((state) => state.timer.currentSession);
+    const highlightedTaskId = useSelector((state) => state.tasks.highlightedTaskId);
+    const timerStatus = useSelector((state) => state.timer.status);
 
+    // Fetch user settings on component mount
+    useEffect(() => {
+        if (timerStatus === 'idle') {
+            dispatch(fetchUserSettings());
+        }
+    }, [dispatch, timerStatus]);
+
+    // Use built-in beep as fallback
+    const playBeepSound = () => {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 800;
+            gainNode.gain.value = alarmVolume || 0.5;
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.start();
+            setTimeout(() => {
+                oscillator.stop();
+            }, 200);
+        } catch (error) {
+            console.error('Failed to play beep sound:', error);
+        }
+    };
+
+    // Initialize toggle sound with error handling
     const toggleSound = new Howl({
         src: [ToggleFx],
-        volume: 1,
+        volume: 0.5,
+        format: ['mp3'],
+        onloaderror: () => {
+            console.warn('Failed to load toggle sound, using fallback');
+        }
     });
 
     const playSoundEffect = () => {
@@ -38,18 +83,35 @@ export default function TimerSection({activeTab, setActiveTab}) {
                     return;
                 }
                 
-                soundEffect.once('end', () => {
+                // Try to play with Howler, fallback to beep if it fails
+                try {
+                    soundEffect.once('end', () => {
+                        repeatCount++;
+                        if (repeatCount < alarmRepeatCount) {
+                            playAndWait(); // Play the next sound only after the previous one finishes
+                        } else {
+                            setIsPlaying(false); // Reset isPlaying when all repeats are done
+                        }
+                    });
+                    soundEffect.play();
+                } catch (error) {
+                    console.error('Error playing sound, using fallback beep:', error);
+                    playBeepSound();
                     repeatCount++;
                     if (repeatCount < alarmRepeatCount) {
-                        playAndWait(); // Play the next sound only after the previous one finishes
+                        setTimeout(playAndWait, 500);
                     } else {
-                        setIsPlaying(false); // Reset isPlaying when all repeats are done
+                        setIsPlaying(false);
                     }
-                });
-                soundEffect.play();
+                }
             };
     
             playAndWait();
+        } else {
+            // If no sound effect is available, use the beep
+            for (let i = 0; i < (alarmRepeatCount || 1); i++) {
+                setTimeout(() => playBeepSound(), i * 500);
+            }
         }
     };
     
@@ -57,32 +119,65 @@ export default function TimerSection({activeTab, setActiveTab}) {
     useEffect(() => {
         // Update the sound effect whenever the selected alarm or volume changes
         if (selectedAlarm) {
-            setSoundEffect(new Howl({
-                src: [selectedAlarm],
-                volume: alarmVolume ?? 0.5,
-            }));
+            try {
+                setSoundEffect(new Howl({
+                    src: [selectedAlarm],
+                    volume: alarmVolume ?? 0.5,
+                    format: ['mp3'],
+                    onloaderror: () => {
+                        console.warn('Failed to load alarm sound, will use fallback beep');
+                        setSoundEffect(null);
+                    }
+                }));
+            } catch (error) {
+                console.error('Error creating Howl instance:', error);
+                setSoundEffect(null);
+            }
+        } else {
+            setSoundEffect(null);
         }
     }, [selectedAlarm, alarmVolume]);
 
     const handleToggle = () => {
         if (soundEffect) {
-            soundEffect.stop();
+            try {
+                soundEffect.stop();
+            } catch (error) {
+                console.error('Error stopping sound:', error);
+            }
             setIsPlaying(false); // Reset the playing state when toggling
         }
         
         if (isTimerActive) {
             countdownApiRef.current.pause();
+            
+            // If we're stopping an active session, end it in the backend
+            if (currentSession) {
+                dispatch(endPomodoroSession({
+                    sessionId: currentSession._id,
+                    completed: false
+                }));
+            }
         } else {
             countdownApiRef.current.stop();
             countdownApiRef.current.start();
+            
+            // Start a new session in the backend
+            dispatch(startPomodoroSession({
+                taskId: highlightedTaskId,
+                sessionType: activeTab
+            }));
         }
         
         dispatch(toggleTimer());
-        toggleSound.play();
-
-        // Additional code to stop the sound effect if it's playing
-        shouldStop = true; // Set flag to true to stop any ongoing playback
         
+        // Try to play toggle sound with fallback
+        try {
+            toggleSound.play();
+        } catch (error) {
+            console.error('Error playing toggle sound:', error);
+            playBeepSound();
+        }
     };
 
     const times = {
@@ -92,20 +187,46 @@ export default function TimerSection({activeTab, setActiveTab}) {
     };
 
     const switchTimers = () => {
-        playSoundEffect(); // Use the new play function
+        playSoundEffect(); // Use the play function
+        
+        // End the current session
+        if (currentSession) {
+            dispatch(endPomodoroSession({
+                sessionId: currentSession._id,
+                completed: true
+            }));
+        }
+        
         if (activeTab === 'Pomodoro') {
             dispatch(incrementCompletedPomodoros());
-            if (completedPomodoros >= pomodorosBeforeLongBreak) {
+            
+            // If a task is highlighted, increment its pomodoro count
+            if (highlightedTaskId) {
+                dispatch(incrementTaskPomodoroAsync(highlightedTaskId));
+            }
+            
+            if (completedPomodoros >= pomodorosBeforeLongBreak - 1) {
                 setActiveTab('Long Break');
                 dispatch(resetCompletedPomodoros());
             } else {
                 setActiveTab('Short Break');
             }
-        } else if (activeTab === 'Short Break') {
+        } else if (activeTab === 'Short Break' || activeTab === 'Long Break') {
             setActiveTab('Pomodoro');
         }
+        
         dispatch(toggleTimer());
-
+        
+        // Start a new session after switching
+        setTimeout(() => {
+            if (!isTimerActive) {
+                dispatch(startPomodoroSession({
+                    taskId: highlightedTaskId,
+                    sessionType: activeTab
+                }));
+                dispatch(toggleTimer());
+            }
+        }, 1000);
     };
     
     // Renderer for the Countdown

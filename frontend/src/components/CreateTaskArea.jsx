@@ -43,45 +43,39 @@ export default function CreateTaskAreq({ onCancel, onAdd}) {
     
     return (
         <>
-            {/* copy and paste from tasksection */}
-             <div className="card my-2  lg:w-9/12 md:w-7/12 w-9/12 bg-white text-zinc-700 shadow-xl">
-             <form >
-              <div className="card-body">
-                  {/* ++ flex justifycenter <div></div> 2x */}
-                  <div className="flex justify-between">
+            <div className="w-full flex justify-center">
+                <div className="card my-2 w-9/12 md:w-7/12 lg:w-9/12 bg-white text-zinc-700 shadow-xl mx-auto">
+                    <form>
+                        <div className="card-body">
+                            <div className="flex justify-between">
+                                <TitleInput value={task.title} onChange={handleInputChange} placeholder={"What are you working on?"} />
+                            </div>
 
-                    {/* -- boredr 7 xs*/}
-                    {/* ++  placeholder:text-lg*/}
-                    <TitleInput value={task.title} onChange={handleInputChange} placeholder={"What are you working on?"} />
-                    </div>
+                            <p className="font-bold text-zinc-700">Est. Pomodoros</p>
+                        
+                            <div className="flex items-center">
+                                <NumberInput
+                                    value={task.pomodoro}
+                                    onChange={handlePomodoroChange}
+                                />
+                            </div>
 
-                    <p className="font-bold  text-zinc-700" >Est. Pomodoros</p>
-                
-                    <div className="flex items-center">
-                    <NumberInput
-                            value={task.pomodoro}
-                            onChange={handlePomodoroChange}
-                        />
-                    </div>
+                            {!showTextarea && (
+                                <a className="underline text-zinc-400" onClick={toggleTextarea}>+ Add Note</a> 
+                            )}
 
-                    {!showTextarea && (
-                        <a className="underline text-zinc-400" onClick={toggleTextarea}>+ Add Note</a> 
-                    )}
-
-                    {showTextarea && (
-                        <ContentInput value={task.content} onChange={handleInputChange} placeholder={"Write Description here"} />
-                    )}
-                {/* ++ div container for buttons */} 
-                <div className="flex justify-end space-x-2">
-
-                    <SecondaryButton value="Cancel" onClick={onCancel} />
-                    <ZincButton value="Save" onClick={handleSubmit} />
+                            {showTextarea && (
+                                <ContentInput value={task.content} onChange={handleInputChange} placeholder={"Write Description here"} />
+                            )}
                             
+                            <div className="flex justify-end space-x-2">
+                                <SecondaryButton value="Cancel" onClick={onCancel} />
+                                <ZincButton value="Save" onClick={handleSubmit} />
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                </div>
-            </form>
-
-              </div>
+            </div>
         </>
     )
 }
