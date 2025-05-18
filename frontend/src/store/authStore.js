@@ -1,10 +1,8 @@
 import { create } from "zustand";
 import axios from "axios";
+import api from '../services/api';  // Import the configured API instance
 
-const API_URL = import.meta.env.MODE === "development" ? "http://localhost:5001/api/auth" : "/api/auth";
-console.log(`Using Auth API URL: ${API_URL}`);
-
-axios.defaults.withCredentials = true;
+console.log('API instance baseURL:', api.defaults.baseURL);
 
 // Helper function to handle errors consistently
 const handleApiError = (error) => {
@@ -34,9 +32,32 @@ export const useAuthStore = create((set) => ({
 	signup: async (email, password, name) => {
 		set({ isLoading: true, error: null });
 		try {
-			const response = await axios.post(`${API_URL}/signup`, { email, password, name });
+			// Testing direct API call to verify exact URL
+			const apiUrl = 'https://pomodorify-rsld.onrender.com/api/auth/signup';
+			console.log(`Attempting direct signup using Axios to ${apiUrl}`);
+			
+			const response = await axios.post(apiUrl, 
+				{ email, password, name }, 
+				{ 
+					withCredentials: true,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+			
+			console.log("Signup successful");
+			
+			// Save token if provided
+			if (response.data.token) {
+				localStorage.setItem('token', response.data.token);
+				api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+				console.log("Token saved to localStorage and set in headers");
+			}
+			
 			set({ user: response.data.user, isAuthenticated: true, isLoading: false });
 		} catch (error) {
+			console.error("Signup error:", error);
+			console.error("Request failed:", error.message);
+			
 			const errorMessage = handleApiError(error);
 			set({ error: errorMessage, isLoading: false });
 			throw error;
@@ -45,13 +66,27 @@ export const useAuthStore = create((set) => ({
 	login: async (email, password) => {
 		set({ isLoading: true, error: null });
 		try {
-			console.log(`Attempting login to ${API_URL}/login with email: ${email}`);
-			const response = await axios.post(`${API_URL}/login`, { email, password });
+			// Testing direct API call to verify exact URL
+			const apiUrl = 'https://pomodorify-rsld.onrender.com/api/auth/login';
+			console.log(`Attempting direct login using Axios to ${apiUrl}`);
+			
+			const response = await axios.post(apiUrl, 
+				{ email, password }, 
+				{ 
+					withCredentials: true,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+			
 			console.log("Login successful");
+			
 			// Save token in localStorage for persistent sessions
 			if (response.data.token) {
 				localStorage.setItem('token', response.data.token);
+				api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+				console.log("Token saved to localStorage and set in headers");
 			}
+			
 			set({
 				isAuthenticated: true,
 				user: response.data.user,
@@ -77,7 +112,15 @@ export const useAuthStore = create((set) => ({
 	logout: async () => {
 		set({ isLoading: true, error: null });
 		try {
-			await axios.post(`${API_URL}/logout`);
+			// Testing direct API call to verify exact URL
+			const apiUrl = 'https://pomodorify-rsld.onrender.com/api/auth/logout';
+			console.log(`Attempting direct logout using Axios to ${apiUrl}`);
+			
+			await axios.post(apiUrl, {}, { 
+				withCredentials: true,
+				headers: { 'Content-Type': 'application/json' }
+			});
+			
 			// Clear ALL app data from localStorage on logout
 			localStorage.removeItem('token');
 			localStorage.removeItem('localTasks');
@@ -95,6 +138,7 @@ export const useAuthStore = create((set) => ({
 				resetTasksCallback();
 			}
 		} catch (error) {
+			console.error("Logout error:", error);
 			// Even if the logout API fails, we still want to clear local state
 			localStorage.removeItem('token');
 			localStorage.removeItem('localTasks');
@@ -116,10 +160,28 @@ export const useAuthStore = create((set) => ({
 	verifyEmail: async (code) => {
 		set({ isLoading: true, error: null });
 		try {
-			const response = await axios.post(`${API_URL}/verify-email`, { code });
+			// Testing direct API call to verify exact URL
+			const apiUrl = 'https://pomodorify-rsld.onrender.com/api/auth/verify-email';
+			console.log(`Attempting direct email verification using Axios to ${apiUrl}`);
+			
+			const response = await axios.post(apiUrl, 
+				{ code }, 
+				{ 
+					withCredentials: true,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+			
+			// Save token if provided
+			if (response.data.token) {
+				localStorage.setItem('token', response.data.token);
+				api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+			}
+			
 			set({ user: response.data.user, isAuthenticated: true, isLoading: false });
 			return response.data;
 		} catch (error) {
+			console.error("Verification error:", error);
 			const errorMessage = handleApiError(error);
 			set({ error: errorMessage, isLoading: false });
 			throw error;
@@ -131,12 +193,29 @@ export const useAuthStore = create((set) => ({
 			// Set token in header if it exists in localStorage
 			const token = localStorage.getItem('token');
 			if (token) {
-				axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+				console.log("Token found in localStorage, setting in headers for auth check");
+			} else {
+				console.log("No token found in localStorage for auth check");
+				// If no token, don't even try the auth check
+				set({ error: null, isCheckingAuth: false, isAuthenticated: false, user: null });
+				return;
 			}
 			
-			const response = await axios.get(`${API_URL}/check-auth`);
+			// Testing direct API call to verify exact URL
+			const apiUrl = 'https://pomodorify-rsld.onrender.com/api/auth/check-auth';
+			console.log(`Attempting direct auth check using Axios to ${apiUrl}`);
+			
+			const response = await axios.get(apiUrl, { 
+				withCredentials: true,
+				headers: { 
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`
+				}
+			});
+			
 			set({ user: response.data.user, isAuthenticated: true, isCheckingAuth: false });
 		} catch (error) {
+			console.error("Auth check error:", error);
 			// Clear token if auth check fails
 			localStorage.removeItem('token');
 			set({ error: null, isCheckingAuth: false, isAuthenticated: false, user: null });
@@ -145,9 +224,21 @@ export const useAuthStore = create((set) => ({
 	forgotPassword: async (email) => {
 		set({ isLoading: true, error: null });
 		try {
-			const response = await axios.post(`${API_URL}/forgot-password`, { email });
+			// Testing direct API call to verify exact URL
+			const apiUrl = 'https://pomodorify-rsld.onrender.com/api/auth/forgot-password';
+			console.log(`Attempting forgot password using Axios to ${apiUrl}`);
+			
+			const response = await axios.post(apiUrl, 
+				{ email }, 
+				{ 
+					withCredentials: true,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+			
 			set({ message: response.data.message, isLoading: false });
 		} catch (error) {
+			console.error("Forgot password error:", error);
 			const errorMessage = handleApiError(error);
 			set({
 				isLoading: false,
@@ -159,9 +250,21 @@ export const useAuthStore = create((set) => ({
 	resetPassword: async (token, password) => {
 		set({ isLoading: true, error: null });
 		try {
-			const response = await axios.post(`${API_URL}/reset-password/${token}`, { password });
+			// Testing direct API call to verify exact URL
+			const apiUrl = `https://pomodorify-rsld.onrender.com/api/auth/reset-password/${token}`;
+			console.log(`Attempting password reset using Axios to ${apiUrl}`);
+			
+			const response = await axios.post(apiUrl, 
+				{ password }, 
+				{ 
+					withCredentials: true,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+			
 			set({ message: response.data.message, isLoading: false });
 		} catch (error) {
+			console.error("Reset password error:", error);
 			const errorMessage = handleApiError(error);
 			set({
 				isLoading: false,

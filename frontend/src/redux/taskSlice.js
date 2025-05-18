@@ -2,6 +2,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { taskService } from "../services/taskService";
 import { aiService } from '../services/aiService';
+import { createSelector } from '@reduxjs/toolkit';
 
 // Async thunks for API operations
 export const fetchTasks = createAsyncThunk(
@@ -313,10 +314,54 @@ export const {
     resetTaskState 
 } = taskSlice.actions;
 export default taskSlice.reducer;
-export const selectHighlightedTask = (state) => {
-    return state.tasks.tasks.find(task => 
-        (task.id && task.id === state.tasks.highlightedTaskId) || 
-        (task._id && task._id === state.tasks.highlightedTaskId)
-    );
-};
+
+// Base selectors
+export const selectTasksState = state => state.tasks;
+export const selectAllTasks = state => state.tasks.tasks;
+export const selectHighlightedTaskId = state => state.tasks.highlightedTaskId;
+export const selectTasksStatus = state => state.tasks.status;
+export const selectTasksError = state => state.tasks.error;
+export const selectSuggestedTasks = state => state.tasks.suggestedTasks;
+export const selectAiStatus = state => state.tasks.aiStatus;
+export const selectSubtasks = state => state.tasks.subtasks;
+
+// Memoized selectors
+export const selectTaskById = createSelector(
+    [selectAllTasks, (_, taskId) => taskId],
+    (tasks, taskId) => tasks.find(task => 
+        (task.id && task.id === taskId) || 
+        (task._id && task._id === taskId)
+    )
+);
+
+export const selectHighlightedTask = createSelector(
+    [selectAllTasks, selectHighlightedTaskId],
+    (tasks, highlightedTaskId) => {
+        if (!highlightedTaskId) return null;
+        return tasks.find(task => 
+            (task.id && task.id === highlightedTaskId) || 
+            (task._id && task._id === highlightedTaskId)
+        );
+    }
+);
+
+export const selectCompletedTasks = createSelector(
+    [selectAllTasks],
+    (tasks) => tasks.filter(task => task.isDone)
+);
+
+export const selectIncompleteTasks = createSelector(
+    [selectAllTasks],
+    (tasks) => tasks.filter(task => !task.isDone)
+);
+
+export const selectTaskSubtasks = createSelector(
+    [selectSubtasks, (_, taskId) => taskId],
+    (subtasks, taskId) => subtasks[taskId] || []
+);
+
+export const selectIsAiLoading = createSelector(
+    [selectAiStatus],
+    (aiStatus) => aiStatus === 'loading'
+);
 

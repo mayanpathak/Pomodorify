@@ -1,4 +1,8 @@
 import api from './api';
+import axios from 'axios';
+
+// API URL
+const API_BASE_URL = 'https://pomodorify-rsld.onrender.com/api';
 
 // Default settings to use as fallback when server is unavailable
 const defaultSettings = {
@@ -6,7 +10,7 @@ const defaultSettings = {
   shortBreakTime: 5 * 60 * 1000, // 5 minutes in milliseconds
   longBreakTime: 15 * 60 * 1000, // 15 minutes in milliseconds
   pomodorosBeforeLongBreak: 4,
-  selectedAlarm: "/alarm1.mp3", // Using relative path instead of import
+  selectedAlarm: "classic", // Default alarm name
   alarmVolume: 0.4,
   alarmRepeatCount: 1,
   theme: "default"
@@ -18,7 +22,21 @@ export const settingsService = {
    */
   getUserSettings: async () => {
     try {
-      const response = await api.get('/settings');
+      const apiUrl = `${API_BASE_URL}/settings`;
+      console.log(`Fetching settings from ${apiUrl}`);
+      
+      // Get token from localStorage for authorization
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      
+      const response = await axios.get(apiUrl, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers
+        }
+      });
+      
       return response.data;
     } catch (error) {
       console.error('Error fetching user settings:', error);
@@ -33,7 +51,21 @@ export const settingsService = {
    */
   updateUserSettings: async (settingsData) => {
     try {
-      const response = await api.patch('/settings', settingsData);
+      const apiUrl = `${API_BASE_URL}/settings`;
+      console.log(`Updating settings at ${apiUrl}`);
+      
+      // Get token from localStorage for authorization
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      
+      const response = await axios.patch(apiUrl, settingsData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers
+        }
+      });
+      
       return response.data;
     } catch (error) {
       console.error('Error updating user settings:', error);

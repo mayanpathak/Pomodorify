@@ -1,4 +1,8 @@
 import api from './api';
+import axios from 'axios';
+
+// API URL
+const API_BASE_URL = 'https://pomodorify-rsld.onrender.com/api';
 
 // Default empty tasks array to use as fallback
 const defaultTasks = [];
@@ -6,13 +10,29 @@ const defaultTasks = [];
 // Local ID counter for offline tasks
 let localIdCounter = 1000;
 
+// Helper function to get authorization headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
+
 export const taskService = {
   /**
    * Get all tasks for the authenticated user
    */
   getTasks: async () => {
     try {
-      const response = await api.get('/tasks');
+      const apiUrl = `${API_BASE_URL}/tasks`;
+      console.log(`Fetching tasks from ${apiUrl}`);
+      
+      const response = await axios.get(apiUrl, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
       return response.data;
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -27,7 +47,17 @@ export const taskService = {
    */
   getTaskById: async (taskId) => {
     try {
-      const response = await api.get(`/tasks/${taskId}`);
+      const apiUrl = `${API_BASE_URL}/tasks/${taskId}`;
+      console.log(`Fetching task from ${apiUrl}`);
+      
+      const response = await axios.get(apiUrl, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
       return response.data;
     } catch (error) {
       console.error(`Error fetching task ${taskId}:`, error);
@@ -47,7 +77,17 @@ export const taskService = {
    */
   createTask: async (taskData) => {
     try {
-      const response = await api.post('/tasks', taskData);
+      const apiUrl = `${API_BASE_URL}/tasks`;
+      console.log(`Creating task at ${apiUrl}`, taskData);
+      
+      const response = await axios.post(apiUrl, taskData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
       return response.data;
     } catch (error) {
       console.error('Error creating task:', error);
@@ -76,7 +116,17 @@ export const taskService = {
    */
   updateTask: async (taskId, taskData) => {
     try {
-      const response = await api.put(`/tasks/${taskId}`, taskData);
+      const apiUrl = `${API_BASE_URL}/tasks/${taskId}`;
+      console.log(`Updating task at ${apiUrl}`, taskData);
+      
+      const response = await axios.put(apiUrl, taskData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
       return response.data;
     } catch (error) {
       console.error(`Error updating task ${taskId}:`, error);
@@ -100,7 +150,17 @@ export const taskService = {
    */
   deleteTask: async (taskId) => {
     try {
-      const response = await api.delete(`/tasks/${taskId}`);
+      const apiUrl = `${API_BASE_URL}/tasks/${taskId}`;
+      console.log(`Deleting task at ${apiUrl}`);
+      
+      const response = await axios.delete(apiUrl, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
       return response.data;
     } catch (error) {
       console.error(`Error deleting task ${taskId}:`, error);
@@ -137,7 +197,17 @@ export const taskService = {
    */
   completeTask: async (taskId) => {
     try {
-      const response = await api.patch(`/tasks/${taskId}/complete`);
+      const apiUrl = `${API_BASE_URL}/tasks/${taskId}/complete`;
+      console.log(`Completing task at ${apiUrl}`);
+      
+      const response = await axios.patch(apiUrl, {}, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
       return response.data;
     } catch (error) {
       console.error(`Error completing task ${taskId}:`, error);
@@ -179,14 +249,24 @@ export const taskService = {
    */
   incrementTaskPomodoro: async (taskId) => {
     try {
-      const response = await api.patch(`/tasks/${taskId}/increment-pomodoro`);
+      const apiUrl = `${API_BASE_URL}/tasks/${taskId}/increment-pomodoro`;
+      console.log(`Incrementing pomodoro at ${apiUrl}`);
+      
+      const response = await axios.patch(apiUrl, {}, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
       return response.data;
     } catch (error) {
       console.error(`Error incrementing pomodoro for task ${taskId}:`, error);
       
       // If it's a 404 error, the task doesn't exist on the server
       if (error.response && error.response.status === 404) {
-        // Remove from localStorage if it exists there
+        // Update in localStorage if it exists there
         const localTasks = localStorage.getItem('localTasks');
         if (localTasks) {
           const tasks = JSON.parse(localTasks);

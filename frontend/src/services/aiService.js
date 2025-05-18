@@ -1,4 +1,14 @@
 import api from './api';
+import axios from 'axios';
+
+// API URL
+const API_BASE_URL = 'https://pomodorify-rsld.onrender.com/api';
+
+// Helper function to get authorization headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
 
 // Default fallback suggestions if API fails
 const DEFAULT_SUGGESTIONS = [
@@ -87,10 +97,19 @@ export const aiService = {
       }
       
       // Make API request with the data
-      const response = await api.post('/ai/suggest-tasks', {
+      const apiUrl = `${API_BASE_URL}/ai/suggest-tasks`;
+      console.log(`Getting AI suggestions from ${apiUrl}`);
+      
+      const response = await axios.post(apiUrl, {
         tasks,
         completedTasks,
         userPreferences
+      }, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
       });
       
       if (response.data && response.data.suggestions && response.data.suggestions.length > 0) {
@@ -120,7 +139,16 @@ export const aiService = {
    */
   breakdownTask: async (taskData) => {
     try {
-      const response = await api.post('/ai/breakdown-task', taskData);
+      const apiUrl = `${API_BASE_URL}/ai/breakdown-task`;
+      console.log(`Breaking down task at ${apiUrl}`, taskData);
+      
+      const response = await axios.post(apiUrl, taskData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
       
       if (response.data && response.data.subtasks && response.data.subtasks.length > 0) {
         return response.data;

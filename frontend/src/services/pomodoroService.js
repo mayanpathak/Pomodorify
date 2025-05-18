@@ -1,7 +1,17 @@
 import api from './api';
+import axios from 'axios';
+
+// API URL
+const API_BASE_URL = 'https://pomodorify-rsld.onrender.com/api';
 
 // Local ID counter for offline sessions
 let localIdCounter = 1000;
+
+// Helper function to get authorization headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
 
 export const pomodoroService = {
   /**
@@ -9,7 +19,17 @@ export const pomodoroService = {
    */
   startSession: async (sessionData) => {
     try {
-      const response = await api.post('/pomodoro/start', sessionData);
+      const apiUrl = `${API_BASE_URL}/pomodoro/start`;
+      console.log(`Starting pomodoro session at ${apiUrl}`, sessionData);
+      
+      const response = await axios.post(apiUrl, sessionData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
       return response.data;
     } catch (error) {
       console.error('Error starting pomodoro session:', error);
@@ -40,7 +60,17 @@ export const pomodoroService = {
    */
   endSession: async (sessionData) => {
     try {
-      const response = await api.post('/pomodoro/end', sessionData);
+      const apiUrl = `${API_BASE_URL}/pomodoro/end`;
+      console.log(`Ending pomodoro session at ${apiUrl}`, sessionData);
+      
+      const response = await axios.post(apiUrl, sessionData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
       return response.data;
     } catch (error) {
       console.error('Error ending pomodoro session:', error);
@@ -79,7 +109,18 @@ export const pomodoroService = {
    */
   getUserSessions: async (params = {}) => {
     try {
-      const response = await api.get('/pomodoro/sessions', { params });
+      const apiUrl = `${API_BASE_URL}/pomodoro/sessions`;
+      console.log(`Fetching pomodoro sessions from ${apiUrl}`, params);
+      
+      const response = await axios.get(apiUrl, {
+        params,
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
       return response.data;
     } catch (error) {
       console.error('Error fetching pomodoro sessions:', error);
@@ -102,9 +143,18 @@ export const pomodoroService = {
    */
   getSessionStats: async (period = 'week') => {
     try {
-      const response = await api.get('/pomodoro/stats', {
-        params: { period }
+      const apiUrl = `${API_BASE_URL}/pomodoro/stats`;
+      console.log(`Fetching pomodoro stats from ${apiUrl}`, { period });
+      
+      const response = await axios.get(apiUrl, {
+        params: { period },
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
       });
+      
       return response.data;
     } catch (error) {
       console.error('Error fetching pomodoro statistics:', error);

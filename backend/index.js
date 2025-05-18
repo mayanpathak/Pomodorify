@@ -23,6 +23,8 @@ const allowedOrigins = [
   "http://localhost:5175",
   "http://localhost:5176",
   "http://localhost:5177",
+  "https://pomodorify.netlify.app",
+  "https://pomodorify.vercel.app",
   process.env.CLIENT_URL,
 ];
 

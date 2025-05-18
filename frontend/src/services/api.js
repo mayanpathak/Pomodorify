@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 // Create an axios instance with default config
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://pomodorify-rsld.onrender.com/api';
+
+console.log('API Service - Using baseURL:', API_URL);
 
 // Configure timeout and retry logic
 const api = axios.create({
@@ -24,7 +26,7 @@ api.interceptors.request.use(
     
     // Log request for debugging in development
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`API Request: ${config.method.toUpperCase()} ${config.baseURL}${config.url}`);
+      console.log(`API Request: ${config.method.toUpperCase()} ${config.url}`);
     }
     
     return config;
@@ -52,9 +54,10 @@ api.interceptors.response.use(
     
     // Handle 401 Unauthorized errors
     if (error.response && error.response.status === 401) {
-      // Clear token and redirect to login
+      console.log('Unauthorized request - clearing token');
+      // Clear token and redirect to login if not already on login page
       localStorage.removeItem('token');
-      if (window.location.pathname !== '/login') {
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
         window.location.href = '/login';
       }
     }

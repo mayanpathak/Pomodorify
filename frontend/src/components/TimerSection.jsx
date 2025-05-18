@@ -117,31 +117,48 @@ export default function TimerSection({activeTab, setActiveTab}) {
     
 
     useEffect(() => {
-        // Update the sound effect whenever the selected alarm or volume changes
-        if (selectedAlarm) {
-            try {
-                setSoundEffect(new Howl({
-                    src: [selectedAlarm],
-                    volume: alarmVolume ?? 0.5,
-                    format: ['mp3'],
-                    onloaderror: () => {
-                        console.warn('Failed to load alarm sound, will use fallback beep');
-                        setSoundEffect(null);
-                    }
-                }));
-            } catch (error) {
-                console.error('Error creating Howl instance:', error);
-                setSoundEffect(null);
-            }
-        } else {
-            setSoundEffect(null);
+        let audio;
+        try {
+            // Load the alarm sound from settings or use default
+            const alarms = loadAlarms();
+            const alarmPath = alarms.find(alarm => alarm.name === selectedAlarm)?.path || alarms[0].path;
+            
+            audio = new Audio(alarmPath);
+            
+            // Preload the audio
+            audio.load();
+            
+            // Check if the audio is loaded correctly
+            audio.addEventListener('canplaythrough', () => {
+                console.log('Alarm sound loaded successfully:', selectedAlarm);
+                setSoundEffect(audio);
+            });
+            
+            // Handle loading errors
+            audio.addEventListener('error', (e) => {
+                console.error('Failed to load alarm sound:', e);
+                // Create a fallback beep using the oscillator
+                playBeepSound();
+            });
+            
+        } catch (error) {
+            console.log('Failed to load alarm sound, will use fallback beep');
+            playBeepSound();
         }
+        
+        // Cleanup function
+        return () => {
+            if (audio) {
+                audio.removeEventListener('canplaythrough', () => {});
+                audio.removeEventListener('error', () => {});
+            }
+        };
     }, [selectedAlarm, alarmVolume]);
 
     const handleToggle = () => {
         if (soundEffect) {
             try {
-                soundEffect.stop();
+                soundEffect.pause();
             } catch (error) {
                 console.error('Error stopping sound:', error);
             }
